@@ -29,6 +29,7 @@ def filtrar_datos(nuevos_datos, data_history):
     filtered_values = []
     for i, dato in enumerate(nuevos_datos):
         # Desplazar el historial a la izquierda y agregar el nuevo valor al final
+        print (i,dato)
         data_history[i, :-1] = data_history[i, 1:]  # Desplazar a la izquierda
         data_history[i, -1] = dato                   # Insertar el nuevo dato al final
 
@@ -36,4 +37,4 @@ def filtrar_datos(nuevos_datos, data_history):
         filtered_value = filtfilt(b, a, data_history[i, :])[-1]
         filtered_values.append(filtered_value)
     
-    return filtered_values
+    return filtered_value
