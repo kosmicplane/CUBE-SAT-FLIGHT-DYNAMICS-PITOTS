@@ -1,6 +1,6 @@
 from scipy.signal import butter, filtfilt
 
-def filtrar_datos_vertical(new, data_history, fs=400000, fc=10000, order=10):
+def filtrar_datos_vertical(new, data_history, offset_pitots, fs=400000, fc=10000, order=10):
     """
     Filtra los datos de sensores en tiempo real utilizando un filtro Butterworth.
     El desplazamiento de los datos históricos se realiza hacia abajo.
@@ -8,6 +8,7 @@ def filtrar_datos_vertical(new, data_history, fs=400000, fc=10000, order=10):
     Parámetros:
     - new: Lista con los nuevos datos de sensores.
     - data_history: DataFrame con el historial de datos de los sensores.
+    - offset_pitots: Lista con el offset de cada sensor de presion
     - fs: Frecuencia de muestreo en Hz (default: 400000).
     - fc: Frecuencia de corte del filtro en Hz (default: 10000).
     - order: Orden del filtro Butterworth (default: 10).
@@ -30,6 +31,10 @@ def filtrar_datos_vertical(new, data_history, fs=400000, fc=10000, order=10):
         
         # Filtrar el historial completo del sensor y obtener el último valor filtrado
         filtered_value = filtfilt(b, a, data_history.iloc[:, i].values)[-1]
+
+        if i < 4: # se resta a la los datos de presión filtrados
+            filtered_value -= offset_pitots[i]
+
         filtered_values.append(filtered_value)
     
     return filtered_values, data_history
