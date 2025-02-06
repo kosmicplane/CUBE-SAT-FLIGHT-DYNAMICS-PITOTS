@@ -11,9 +11,11 @@ def PitotProcess(pitots, pressure, temperature,psi):
     Returns:
         list: lista compuesta por los dos vectores de velocidad de la pareja de pitots
     """
-    rho = pressure/(287*(temperature+273.15))
-    velocity = list(map(lambda x: ((2*abs(x-pressure)/rho)**0.5), pitots))
+    rho = (pressure*0.02897)/(8.314472*(temperature+273.15)) #Se calcula la densidad del aire con ecuación de gases ideales rho = PM/RT
+    velocity = list(map(lambda x: ((2*abs(x)/rho)**0.5), pitots)) # Se aplica la ecuacion de Bernoulli
     velocity_Couple1 = [velocity[0],velocity[1],0]  #desconocemos la componente en z de corrientes en 0, por ahora se asumira en 0 y se evaluara su impacto
     velocity_Couple2 = [velocity[2],velocity[3],0] #desconocemos la componente en z de corrientes en 0, por ahora se asumira en 0 y se evaluara su impacto
     velocity_Couple1, velocity_Couple2 = C_e_b(psi, velocity_Couple1), C_e_b(psi, velocity_Couple2)
     return [velocity_Couple1,velocity_Couple2]
+    
+    #EN ESTA FUNCION "PitotProcess" SE DEBE REVISAR LAS PAREJAS DE PITOT. ESTAS PRIMERO DEBERIAN RESTARSE Y LUEGO SI TRANSFORMARSE
