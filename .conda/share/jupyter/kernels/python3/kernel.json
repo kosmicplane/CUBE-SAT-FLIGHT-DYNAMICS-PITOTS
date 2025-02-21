@@ -1,0 +1,15 @@
+{
+ "argv": [
+  "/home/kosmicraft/Research/Modelo-Matematico/.conda/bin/python",
+  "-Xfrozen_modules=off",
+  "-m",
+  "ipykernel_launcher",
+  "-f",
+  "{connection_file}"
+ ],
+ "display_name": "Python 3 (ipykernel)",
+ "language": "python",
+ "metadata": {
+  "debugger": true
+ }
+}
