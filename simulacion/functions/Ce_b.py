@@ -1,5 +1,5 @@
 import numpy as np
-def C_e_b(psi, v):
+def C_e_b(euler_angles, v):
     """
     Applies the Euler angle transformation to a vector 'v' using the angles in 'psi'.
 
@@ -11,7 +11,7 @@ def C_e_b(psi, v):
         The transformed vector.
     """
     # Extract Euler angles
-    phi, theta, psi = psi
+    phi, theta, psi = euler_angles
 
     # Compute sines and cosines
     c_phi, s_phi = np.cos(phi), np.sin(phi)
