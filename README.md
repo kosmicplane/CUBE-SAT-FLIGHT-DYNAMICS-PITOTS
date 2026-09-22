@@ -62,9 +62,7 @@ Solving for velocity magnitude gives
 ```math
 V_i
 =
-\sqrt{
-\frac{2\left|\Delta p_i\right|}{\rho}
-}.
+\sqrt{2|\Delta p_i|/\rho}.
 ```
 
 Opposing pressure channels can be combined into directional components. In the repository processing path,
@@ -84,13 +82,7 @@ V_2-V_4.
 A body-frame airflow vector is then represented as
 
 ```math
-V_{\mathrm{Pitot}}^b
-=
-\begin{bmatrix}
-V_x^b \\
-V_y^b \\
-0
-\end{bmatrix}.
+V_{\mathrm{Pitot}}^b=[V_x^b\; V_y^b\; 0]^T.
 ```
 
 This is an engineering reconstruction model whose fidelity depends on sensor calibration, probe geometry, flow angularity, and the validity of the incompressible approximation in the tested regime.
@@ -134,11 +126,7 @@ The measured airflow must be transformed from the probe/body frame into the sele
 ```math
 V_{\mathrm{Pitot}}^e
 =
-C_e^b
-\left(
-\phi,\theta,\psi
-\right)
-V_{\mathrm{Pitot}}^b.
+C_e^b(\phi,\theta,\psi)\,V_{\mathrm{Pitot}}^b.
 ```
 
 The corresponding transform implementations are:
@@ -315,7 +303,7 @@ For first-order uncertainty propagation of a scalar output `y=f(z)`,
 \approx
 J_f
 \Sigma_z
-J_f^\mathsf{T},
+J_f^T,
 ```
 
 where `J_f` is the local Jacobian and `Sigma_z` the input covariance matrix.
