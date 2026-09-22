@@ -12,7 +12,7 @@
 
 ## Project objective
 
-This repository contains the flight-dynamics, sensing, calibration, and post-processing workflow for a **CubeSat-class atmospheric probe**.
+The project combines flight dynamics, sensing, calibration, and post-flight reconstruction for a **CubeSat-class atmospheric probe**.
 
 The project connects:
 
@@ -23,7 +23,7 @@ The project connects:
 5. wind-tunnel characterization;
 6. post-flight trajectory and airflow reconstruction.
 
-The intent is to maintain traceability from physical sensing assumptions to the reconstructed flight quantities.
+The workflow is organized so that each reconstructed quantity can be traced back to its sensing assumptions, calibration step, and reference-frame convention.
 
 ---
 
@@ -85,7 +85,7 @@ A body-frame airflow vector is then represented as
 V_{\mathrm{Pitot}}^b=[V_x^b\; V_y^b\; 0]^T.
 ```
 
-This is an engineering reconstruction model whose fidelity depends on sensor calibration, probe geometry, flow angularity, and the validity of the incompressible approximation in the tested regime.
+The reconstruction depends on differential-pressure calibration, probe geometry, local flow angle, and the validity of the incompressible-flow approximation over the tested regime.
 
 ---
 
@@ -168,7 +168,7 @@ w_{\mathrm{IMU}}
 
 See [V_Wind.py](simulacion/functions/V_Wind.py).
 
-This weighted combination is an implemented processing choice; it should not be interpreted as a statistically optimal fusion rule unless the weighting model is separately derived and validated.
+The weighted combination is an engineering fusion rule used in the processing chain; no probabilistic optimality is assumed.
 
 ---
 
@@ -187,7 +187,7 @@ a(\tau)\,d\tau.
 
 Numerically, the repository applies component-wise integration in [calcVelocity.py](simulacion/functions/calcVelocity.py).
 
-Pure inertial integration is drift-sensitive. It is therefore treated as a short-window reconstruction/input to the broader processing chain rather than a drift-free standalone estimator.
+Because pure inertial integration accumulates bias and noise, it is used over short windows and interpreted together with the other motion measurements.
 
 ---
 
@@ -214,7 +214,7 @@ Relevant repository evidence:
 - [test_tunnel_code.py](Tests/test_tunnel_code.py)
 - recorded tunnel datasets under [Tests/](Tests/)
 
-The tunnel stage supports **calibration and characterization**. It is not, by itself, a full-flight validation.
+The tunnel stage is used for **calibration and characterization** before the sensor model is carried into the flight-processing chain.
 
 ---
 
@@ -260,7 +260,7 @@ Key files:
   </a>
 </p>
 
-The video documents the launch campaign associated with the probe/payload integration.
+The video documents the launch campaign in which the probe/payload system was integrated and flown.
 
 ---
 
@@ -278,7 +278,7 @@ analytical sensing relations
 → post-flight reconstruction
 ```
 
-Each level answers a different question. A successful tunnel calibration does not automatically validate the full airborne reconstruction chain; similarly, agreement in post-processing must be interpreted with the uncertainties of the sensors, synchronization, attitude solution, and flow model.
+Each level answers a different engineering question. Tunnel calibration characterizes the sensing model, while airborne reconstruction additionally depends on synchronization, attitude, inertial drift, GNSS uncertainty, and the flight environment.
 
 ---
 
@@ -308,7 +308,7 @@ J_f^T,
 
 where `J_f` is the local Jacobian and `Sigma_z` the input covariance matrix.
 
-This provides a principled route for extending the current deterministic reconstruction into uncertainty-aware estimation.
+The same formulation can be used to propagate sensor and calibration uncertainty into the reconstructed flight quantities.
 
 ---
 
@@ -339,6 +339,6 @@ simulacion/
 
 ---
 
-## Scientific scope
+## Validation scope
 
-This repository documents the **measurement, calibration, and reconstruction pipeline** for the atmospheric probe. Equations, CFD/sensor-placement studies, wind-tunnel data, avionics integration, and flight reconstruction are intentionally kept as distinct evidence layers so that one is not used to overstate validation of another.
+The repository documents the **measurement, calibration, and reconstruction pipeline** for the atmospheric probe. Analytical relations, CFD/sensor-placement studies, wind-tunnel data, avionics integration, and flight reconstruction are maintained as distinct stages so that the origin and strength of each result remain clear.
