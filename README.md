@@ -1,213 +1,260 @@
-# CubeSat-Class Atmospheric Probe — Flight Dynamics & Multi-Pitot Wind Estimation
+# CubeSat-Class Atmospheric Probe — Flight Dynamics & Multi-Pitot Reconstruction
 
 <p align="center">
-  <strong>Atmospheric descent · multi-Pitot sensing · IMU/GPS processing · frame transformations · wind-tunnel calibration · post-flight reconstruction</strong>
+  <strong>Atmospheric descent · multi-Pitot sensing · IMU/GNSS processing · frame transformations · wind-tunnel calibration · flight-data reconstruction</strong>
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/cad.webp" width="32%" alt="Probe CAD">
-  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/frame.webp" width="32%" alt="Probe structure">
+  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/report/cubesat-cad.png" width="32%" alt="Probe CAD">
+  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/report/pitot-cad-a.png" width="32%" alt="Pitot system CAD">
   <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/avionics.webp" width="32%" alt="Probe avionics">
 </p>
 
-This repository contains flight-dynamics and sensing code developed for a **CubeSat-class atmospheric probe** used to study descent behavior and reconstruct atmospheric-flow information from onboard measurements.
+## Project objective
 
-The project connects five engineering layers:
+This repository contains the flight-dynamics, sensing, calibration, and post-processing workflow for a **CubeSat-class atmospheric probe**.
 
-1. **descent dynamics and atmospheric properties**;
-2. **multi-Pitot airflow sensing**;
-3. **IMU/GPS motion information**;
-4. **coordinate-frame transformations and wind-vector reconstruction**;
-5. **wind-tunnel and flight-data validation**.
+The project connects:
 
-The goal is not to treat CFD, tunnel testing, sensing, and post-flight processing as independent activities, but to connect them into one traceable measurement-and-reconstruction workflow.
+1. atmospheric descent modeling;
+2. multi-port Pitot sensing;
+3. IMU/GNSS motion measurements;
+4. body-to-Earth frame transformations;
+5. wind-tunnel characterization;
+6. post-flight trajectory and airflow reconstruction.
+
+The intent is to maintain traceability from physical sensing assumptions to the reconstructed flight quantities.
 
 ---
 
-## System workflow
+## 1. Measurement and reconstruction chain
 
-~~~mermaid
+```mermaid
 flowchart LR
     A[Probe geometry] --> B[CFD / sensor placement]
-    B --> C[Multi-Pitot installation]
+    B --> C[Multi-Pitot hardware]
     C --> D[Wind-tunnel calibration]
     D --> E[Flight instrumentation]
-    E --> F[IMU + GPS + pressure data]
-    F --> G[Frame transformation]
-    G --> H[Wind-vector reconstruction]
-    H --> I[Trajectory / model comparison]
-~~~
+    E --> F[Pressure + IMU + GNSS]
+    F --> G[Filtering / synchronization]
+    G --> H[Frame transformations]
+    H --> I[Wind / trajectory reconstruction]
+    I --> J[Comparison with flight model]
+```
 
 ---
 
-## Pitot measurement model
+## 2. Pitot measurement model
 
-For each differential-pressure measurement $\Delta p_i$, the implementation uses the incompressible dynamic-pressure relation
+For each differential-pressure channel `i`, the incompressible dynamic-pressure relation is
 
-$$
+```math
+q_i
+=
+\Delta p_i
+=
+\frac{1}{2}
+\rho V_i^2.
+```
+
+Solving for velocity magnitude gives
+
+```math
 V_i
 =
 \sqrt{
-\frac{2\lvert \Delta p_i\rvert}{\rho}
-},
-$$
+\frac{2\left|\Delta p_i\right|}{\rho}
+}.
+```
 
-where $\rho$ is local air density.
+Opposing pressure channels can be combined into directional components. In the repository processing path,
 
-The current processing path forms opposing-sensor components
-
-$$
+```math
 V_x^b
 =
 V_1-V_3,
-$$
+```
 
-$$
+```math
 V_y^b
 =
 V_2-V_4.
-$$
+```
 
-The body-frame airflow estimate is therefore represented as
+A body-frame airflow vector is then represented as
 
-$$
-\mathbf V_{\mathrm{Pitot}}^{\,b}
+```math
+V_{\mathrm{Pitot}}^b
 =
 \begin{bmatrix}
-V_x^b\\
-V_y^b\\
+V_x^b \\
+V_y^b \\
 0
 \end{bmatrix}.
-$$
+```
 
-Using the repository's selected body/Earth frame convention,
-
-$$
-\mathbf V_{\mathrm{Pitot}}^{\,e}
-=
-C_e^b(\phi,\theta,\psi)
-\mathbf V_{\mathrm{Pitot}}^{\,b}.
-$$
-
-Relevant implementation files include:
-
-- [PitotProcess.py](simulacion/functions/PitotProcess.py)
-- [Ce_b.py](simulacion/functions/Ce_b.py)
-- [Cb_e.py](simulacion/functions/Cb_e.py)
+This is an engineering reconstruction model whose fidelity depends on sensor calibration, probe geometry, flow angularity, and the validity of the incompressible approximation in the tested regime.
 
 ---
 
-## Atmospheric model
+## 3. Atmospheric model
 
-Air density is estimated with an ISA-style atmospheric model.
+Air density is obtained from the ideal-gas relation
 
-The density relation is
-
-$$
+```math
 \rho
 =
 \frac{p}{RT},
-$$
+```
 
-where $p$ is static pressure, $R$ the specific gas constant for air, and $T$ absolute temperature.
+where:
 
-Because the Pitot-derived velocity scales as
+- `p` is static pressure;
+- `R` is the specific gas constant for air;
+- `T` is absolute temperature.
 
-$$
-V\propto \frac{1}{\sqrt{\rho}},
-$$
+Because
 
-errors in the atmospheric-property estimate propagate directly into the reconstructed airflow magnitude.
+```math
+V
+\propto
+\rho^{-1/2},
+```
 
-See [ISA.py](simulacion/functions/ISA.py).
+density uncertainty propagates directly into the reconstructed Pitot velocity.
+
+The atmospheric utilities are implemented in [ISA.py](simulacion/functions/ISA.py).
 
 ---
 
-## Wind-vector reconstruction
+## 4. Coordinate transformation
 
-The processing path combines the airflow estimate with vehicle motion.
+The measured airflow must be transformed from the probe/body frame into the selected Earth-frame convention.
 
-A representative Earth/NED-frame relation is
-
-$$
-\mathbf V_{\mathrm{wind}}^{\,NED}
+```math
+V_{\mathrm{Pitot}}^e
 =
-\mathbf V_{\mathrm{Pitot}}^{\,e}
+C_e^b
+\left(
+\phi,\theta,\psi
+\right)
+V_{\mathrm{Pitot}}^b.
+```
+
+The corresponding transform implementations are:
+
+- [Ce_b.py](simulacion/functions/Ce_b.py)
+- [Cb_e.py](simulacion/functions/Cb_e.py)
+
+The sign and axis conventions must remain consistent with the IMU attitude representation and the GNSS velocity convention.
+
+---
+
+## 5. Wind-vector reconstruction
+
+A representative reconstruction is
+
+```math
+V_{\mathrm{wind}}^{NED}
+=
+V_{\mathrm{air}}^{NED}
 -
-\mathbf V_{\mathrm{vehicle}}^{\,e}.
-$$
+V_{\mathrm{vehicle}}^{NED}.
+```
 
-The repository also includes a weighted combination utility for GPS- and IMU-derived velocity information:
+The repository also includes a weighted combination of GPS- and IMU-derived vehicle velocity estimates:
 
-$$
-\mathbf V_{\mathrm{state}}
+```math
+V_{\mathrm{state}}
 =
 \frac{
-w_{\mathrm{GPS}}\mathbf V_{\mathrm{GPS}}
+w_{\mathrm{GPS}}V_{\mathrm{GPS}}
 +
-w_{\mathrm{IMU}}\mathbf V_{\mathrm{IMU}}
+w_{\mathrm{IMU}}V_{\mathrm{IMU}}
 }{
 w_{\mathrm{GPS}}
 +
 w_{\mathrm{IMU}}
 }.
-$$
+```
 
 See [V_Wind.py](simulacion/functions/V_Wind.py).
 
+This weighted combination is an implemented processing choice; it should not be interpreted as a statistically optimal fusion rule unless the weighting model is separately derived and validated.
+
 ---
 
-## IMU velocity integration
+## 6. Inertial velocity reconstruction
 
-Short-window inertial reconstruction uses numerical integration of measured acceleration:
+Short-window inertial velocity reconstruction follows
 
-$$
-\mathbf v(t)
+```math
+v(t)
 =
-\mathbf v(t_0)
+v(t_0)
 +
 \int_{t_0}^{t}
-\mathbf a(\tau)\,d\tau.
-$$
+a(\tau)\,d\tau.
+```
 
-The utility [calcVelocity.py](simulacion/functions/calcVelocity.py) applies this operation component-wise.
+Numerically, the repository applies component-wise integration in [calcVelocity.py](simulacion/functions/calcVelocity.py).
 
-This calculation is drift-sensitive. It is useful for short-window reconstruction and comparison, but it should not be interpreted as a drift-free standalone velocity estimator.
+Pure inertial integration is drift-sensitive. It is therefore treated as a short-window reconstruction/input to the broader processing chain rather than a drift-free standalone estimator.
 
 ---
 
-## Wind-tunnel calibration
+## 7. Wind-tunnel calibration and sensor characterization
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/windtunnel.webp" width="48%" alt="Wind-tunnel testing">
-  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/wind-results.webp" width="48%" alt="Wind-tunnel results">
+  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/report/windtunnel.jpg" width="48%" alt="Wind tunnel test">
+  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/report/wind-data.png" width="48%" alt="Wind tunnel pressure data">
 </p>
 
-The wind-tunnel stage was used to connect sensor placement and pressure measurements with the airflow quantities required by the post-processing model.
+The tunnel campaign connects:
 
-Repository evidence includes:
+- Pitot geometry;
+- differential-pressure response;
+- sensor placement;
+- repeatability;
+- airflow magnitude;
+- interference from the probe structure.
+
+Relevant repository evidence:
 
 - [functions_testing.ipynb](Tests/functions_testing.ipynb)
 - [tunnel_sampling.ipynb](Tests/tunnel_sampling.ipynb)
 - [test_tunnel_code.py](Tests/test_tunnel_code.py)
 - recorded tunnel datasets under [Tests/](Tests/)
 
-The role of this stage is calibration and characterization; it should not be conflated with full-flight validation.
+The tunnel stage supports **calibration and characterization**. It is not, by itself, a full-flight validation.
 
 ---
 
-## Flight instrumentation and reconstruction
+## 8. Physical probe and avionics
 
-The flight-processing material includes:
+<p align="center">
+  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/frame.webp" width="48%" alt="Probe structure">
+  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/avionics.webp" width="48%" alt="Probe avionics">
+</p>
 
-- recorded flight data;
-- onboard sensor measurements;
-- frame conversions;
-- trajectory reconstruction utilities;
-- atmospheric-property estimation;
-- map/trajectory visualization.
+The physical system integrates the structural probe, differential-pressure sensing, onboard avionics, telemetry, inertial sensing, and GNSS measurements required by the reconstruction pipeline.
 
-Key files include:
+---
+
+## 9. Flight-data processing
+
+The post-flight path includes:
+
+- raw flight data ingestion;
+- cleaning/filtering;
+- atmospheric-property calculation;
+- IMU/GNSS/Pitot synchronization;
+- frame conversion;
+- trajectory reconstruction;
+- airflow/wind estimation;
+- comparison with expected descent behavior.
+
+Key files:
 
 - [main.ipynb](simulacion/main.ipynb)
 - [proccesor.ipynb](simulacion/proccesor.ipynb)
@@ -217,45 +264,69 @@ Key files include:
 
 ---
 
-## Physical mission evidence
+## 10. Mission evidence
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/media/projects/volta-launch.mp4">
-    <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/tower.webp" width="760" alt="Atmospheric probe mission integration">
+    <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/tower.webp" width="760" alt="Launch campaign evidence">
   </a>
 </p>
 
-The linked clip provides launch-context footage from the Spaceport America Cup campaign in which the probe payload was integrated.
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/model.webp" width="48%" alt="Probe model">
-  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/recovery.webp" width="48%" alt="Recovered probe">
-</p>
-
-These images document physical integration and recovery without repeating the CAD, avionics, or wind-tunnel figures used earlier.
+The video documents the launch campaign associated with the probe/payload integration.
 
 ---
 
-## Validation hierarchy
+## 11. Validation hierarchy
 
-The evidence should be interpreted in the following order:
+The project evidence is organized as
 
-~~~text
-analytical relation
+```text
+analytical sensing relations
 → numerical processing
-→ CFD / sensor-placement study
+→ CFD / sensor-placement analysis
 → wind-tunnel calibration
-→ integrated instrumentation
-→ flight-data reconstruction
-~~~
+→ integrated avionics
+→ flight instrumentation
+→ post-flight reconstruction
+```
 
-Each stage answers a different question. Agreement at one stage should not be presented as validation of a stronger stage that was not tested.
+Each level answers a different question. A successful tunnel calibration does not automatically validate the full airborne reconstruction chain; similarly, agreement in post-processing must be interpreted with the uncertainties of the sensors, synchronization, attitude solution, and flow model.
 
 ---
 
-## Repository structure
+## 12. Uncertainty sources
 
-~~~text
+Important error sources include:
+
+- differential-pressure zero/bias;
+- local density estimation;
+- Pitot angular sensitivity;
+- body-frame sensor misalignment;
+- IMU bias and integration drift;
+- GNSS velocity uncertainty;
+- timestamp offsets;
+- aerodynamic interference;
+- calibration transfer from tunnel to flight conditions.
+
+For first-order uncertainty propagation of a scalar output `y=f(z)`,
+
+```math
+\sigma_y^2
+\approx
+J_f
+\Sigma_z
+J_f^\mathsf{T},
+```
+
+where `J_f` is the local Jacobian and `Sigma_z` the input covariance matrix.
+
+This provides a principled route for extending the current deterministic reconstruction into uncertainty-aware estimation.
+
+---
+
+## 13. Repository structure
+
+```text
 Tests/
 ├── functions_testing.ipynb
 ├── tunnel_sampling.ipynb
@@ -273,24 +344,13 @@ simulacion/
     ├── V_Wind.py
     ├── ISA.py
     ├── calcVelocity.py
-    ├── Ce_b.py / Cb_e.py
+    ├── Ce_b.py
+    ├── Cb_e.py
     └── filtering / integration utilities
-~~~
+```
 
 ---
 
 ## Scientific scope
 
-This repository is a research and engineering implementation of the probe's **measurement and reconstruction pipeline**.
-
-The mathematical relations depend on:
-
-- differential-pressure calibration;
-- air-density estimation;
-- frame conventions;
-- sensor alignment;
-- inertial drift;
-- time synchronization;
-- the validity of the selected flow assumptions.
-
-For that reason, equations, numerical processing, wind-tunnel data, and flight measurements are kept conceptually distinct throughout the documentation.
+This repository documents the **measurement, calibration, and reconstruction pipeline** for the atmospheric probe. Equations, CFD/sensor-placement studies, wind-tunnel data, avionics integration, and flight reconstruction are intentionally kept as distinct evidence layers so that one is not used to overstate validation of another.
