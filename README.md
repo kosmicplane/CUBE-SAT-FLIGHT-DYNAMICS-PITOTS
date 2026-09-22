@@ -42,7 +42,7 @@ flowchart LR
 
 ## Pitot measurement model
 
-For each differential-pressure measurement \(\Delta p_i\), the implementation uses the incompressible dynamic-pressure relation
+For each differential-pressure measurement $\Delta p_i$, the implementation uses the incompressible dynamic-pressure relation
 
 $$
 V_i
@@ -52,7 +52,7 @@ V_i
 },
 $$
 
-where \(\rho\) is local air density.
+where $\rho$ is local air density.
 
 The current processing path forms opposing-sensor components
 
@@ -109,7 +109,7 @@ $$
 \frac{p}{RT},
 $$
 
-where \(p\) is static pressure, \(R\) the specific gas constant for air, and \(T\) absolute temperature.
+where $p$ is static pressure, $R$ the specific gas constant for air, and $T$ absolute temperature.
 
 Because the Pitot-derived velocity scales as
 
