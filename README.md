@@ -7,7 +7,7 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/report/cubesat-cad.png" width="32%" alt="Probe CAD">
   <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/report/pitot-cad-a.png" width="32%" alt="Pitot system CAD">
-  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/avionics.webp" width="32%" alt="Probe avionics">
+  <img src="https://raw.githubusercontent.com/kosmicplane/kosmicplane.github.io/main/assets/images/research/udea/model.webp" width="32%" alt="Physical probe model">
 </p>
 
 ## Project objective
